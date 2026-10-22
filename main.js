@@ -47,6 +47,10 @@ async function setup(game_state) {
         }
         game_state[row][col] = turn;
         draw_state(game_state, Ximg, Oimg, pieces_container)
+        const winner = check_win(game_state)
+        if (winner !== "") {
+            console.log(winner)
+        }
         turn = turn === "x" ? "o" : "x";
     });
 }
@@ -76,6 +80,21 @@ function draw_state(state, Ximg, Oimg, container){
             container.addChild(sprite);
         }
     }
+}
+
+function check_win(game_state){
+    for (let row = 0; row < game_state.length; row++) {
+        const line = game_state[row]
+        if (line.every(element => element === 'x')) { return "x" }
+        if (line.every(element => element === 'o')) { return "o" }
+    }
+    for (let col = 0; col < game_state.length; col++) {
+        const column = game_state.map(row => row[col]);
+        if (column.every(element => element === 'x')) { return "x" }
+        if (column.every(element => element === 'o')) { return "o" }
+    }
+      
+    return "";
 }
 
 setup(test_game_state);

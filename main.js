@@ -33,7 +33,11 @@ async function setup(game_state) {
 
     const Ximg = await PIXI.Assets.load('assets/x.png');
     const Oimg = await PIXI.Assets.load('assets/o.png');
-
+    
+    const grid_graphics = new PIXI.Graphics();
+    draw_lines(grid_graphics, 5, tile_size)
+    app.stage.addChild(grid_graphics);
+    
     const pieces_container = new PIXI.Container();
     app.stage.addChild(pieces_container);
     app.stage.eventMode = 'static'
@@ -53,6 +57,19 @@ async function setup(game_state) {
         }
         turn = turn === "x" ? "o" : "x";
     });
+}
+
+function draw_lines(graphics, count_of_lines, tile_size) {
+    const total_length = count_of_lines * tile_size;
+    graphics.beginPath();
+    for (let pos_coef = 0; pos_coef <= count_of_lines; pos_coef++) {
+        const pos = pos_coef * tile_size;
+        graphics.moveTo(pos, 0);
+        graphics.lineTo(pos, total_length);
+        graphics.moveTo(0, pos);
+        graphics.lineTo(total_length, pos);
+    }
+    graphics.stroke({ width: tile_size * 0.1, color: 0x666666 });
 }
 
 function get_click_row_col(event){

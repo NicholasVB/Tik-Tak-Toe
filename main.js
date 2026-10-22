@@ -1,4 +1,4 @@
-let turn = "X"
+let turn = "x"
 let game_state  = [
     ["", "", "", "", ""],
     ["", "", "", "", ""],
@@ -23,7 +23,7 @@ let ability = []
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
 const app = new PIXI.Application();
 
-async function setup() {
+async function setup(game_state) {
     await app.init({ 
         canvas: document.querySelector('.canvas'),
         width: 800, 
@@ -33,14 +33,33 @@ async function setup() {
 
     const Ximg = await PIXI.Assets.load('assets/x.png');
     const Oimg = await PIXI.Assets.load('assets/o.png');
-    const sprite_X = new PIXI.Sprite(Ximg);
-    const sprite_O = new PIXI.Sprite(Oimg);
 
-    draw_state(test_game_state, Ximg, Oimg, app)
-
+    const pieces_container = new PIXI.Container();
+    app.stage.addChild(pieces_container);
+    app.stage.eventMode = 'static'
+    app.stage.hitArea = app.screen;
+    draw_state(game_state, Ximg, Oimg, pieces_container)
+    
+    app.stage.on('pointerdown', (event) => {
+        const [row, col] = get_click_row_col(event);
+        if (game_state[row][col] !== "") {
+            return;
+        }
+        game_state[row][col] = turn;
+        draw_state(game_state, Ximg, Oimg, pieces_container)
+        turn = turn === "x" ? "o" : "x";
+    });
 }
 
-function draw_state(state, Ximg, Oimg, app){
+function get_click_row_col(event){
+    const pos = event.global;
+    const col = Math.floor(pos.x / tile_size);
+    const row = Math.floor(pos.y / tile_size);
+    return [row, col]
+}
+   
+function draw_state(state, Ximg, Oimg, container){
+    container.removeChildren()
     for (let row = 0; row < state.length; row++) {
         for (let col = 0; col < state[row].length; col++) {
             if (state[row][col] == "") {continue}
@@ -54,9 +73,9 @@ function draw_state(state, Ximg, Oimg, app){
             sprite.height = tile_size * 0.8
             sprite.x = col * tile_size + tile_size * 0.2 / 2
             sprite.y = row * tile_size + tile_size * 0.2 / 2
-            app.stage.addChild(sprite);
+            container.addChild(sprite);
         }
     }
 }
 
-setup();
+setup(test_game_state);

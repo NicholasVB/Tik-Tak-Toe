@@ -18,10 +18,10 @@ let test_game_state  = [
 let tile_size = 75
 let number_of_tiles = 5
 let round = 1
-let seconds_in_round = 10
 let ability = []
 
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
+import { timerText, startTurnTimer, resetTimer, stopTimer } from './timer.js'
 
 async function setup(game_state) {
     const Ximg = await PIXI.Assets.load('assets/x.png');
@@ -35,6 +35,10 @@ async function setup(game_state) {
         backgroundColor: '#ffe4c4',    
     });
     
+    startTurnTimer(() => {
+        handleTimeOut(Ximg, Oimg);
+    });
+
     const grid_graphics = new PIXI.Graphics();
     const highlights_graphics = new PIXI.Graphics();
     const pieces_container = new PIXI.Container();
@@ -44,11 +48,13 @@ async function setup(game_state) {
     const main_container = new PIXI.Container();
     main_container.eventMode = 'static'
     main_container.hitArea = new PIXI.Rectangle(0, 0, (tile_size * number_of_tiles), (tile_size * number_of_tiles));
-   
     main_container.x = (app.screen.width - (tile_size * number_of_tiles)) / 2;
     main_container.y = (app.screen.height - (tile_size * number_of_tiles)) / 2;
 
     app.stage.addChild(main_container);
+    timerText.x = app.screen.width * 0.9;
+    timerText.y = app.screen.height * 0.1;
+    app.stage.addChild(timerText);
     main_container.addChild(grid_graphics);
     main_container.addChild(highlights_graphics);
     main_container.addChild(pieces_container);
@@ -62,9 +68,11 @@ async function setup(game_state) {
         draw_state(game_state, Ximg, Oimg, pieces_container)
         const winner = check_win(game_state)
         if (winner !== "") {
-            console.log(winner)
+            stopTimer();
+            return;
         }
         turn = turn === "x" ? "o" : "x";
+        resetTimer(() => {handleTimeOut(Ximg, Oimg)})
     });
 
     main_container.on('pointermove', (event) => {
@@ -76,6 +84,14 @@ async function setup(game_state) {
         } else {
             draw_backlight(highlights_graphics, [], tile_size);
         }
+    });
+}
+
+function handleTimeOut(Ximg, Oimg) {
+    turn = turn === "x" ? "o" : "x";
+    
+    startTurnTimer(() => {
+        handleTimeOut(Ximg, Oimg);
     });
 }
 

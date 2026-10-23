@@ -37,6 +37,19 @@ async function setup(game_state) {
     const grid_graphics = new PIXI.Graphics();
     draw_lines(grid_graphics, 5, tile_size)
     app.stage.addChild(grid_graphics);
+
+    const highlights_graphics = new PIXI.Graphics();
+    app.stage.on('pointermove', (event) => {
+        const pos = event.global;
+        const col = Math.floor(pos.x / tile_size);
+        const row = Math.floor(pos.y / tile_size);
+        if (row >= 0 && row < app.canvas.height && col >= 0 && col < app.canvas.width) {
+            draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
+        } else {
+            draw_backlight(highlights_graphics, [], tile_size);
+        }
+    });
+    app.stage.addChild(highlights_graphics);
     
     const pieces_container = new PIXI.Container();
     app.stage.addChild(pieces_container);
@@ -57,6 +70,23 @@ async function setup(game_state) {
         }
         turn = turn === "x" ? "o" : "x";
     });
+}
+
+function draw_backlight(graphics, cells_to_backlight, tile_size, color = 0x00ff00, alpha = 0.3, padding = 2) {
+    graphics.clear();
+    if (!cells_to_backlight || cells_to_backlight.length === 0) return;
+    graphics.fill({ color: color, alpha: alpha });
+    for (const cell of cells_to_backlight) {
+        const x = cell.col * tile_size;
+        const y = cell.row * tile_size;
+        graphics.rect(
+            x + padding, 
+            y + padding, 
+            tile_size - padding * 2, 
+            tile_size - padding * 2
+        );
+    }
+    graphics.fill();
 }
 
 function draw_lines(graphics, count_of_lines, tile_size) {

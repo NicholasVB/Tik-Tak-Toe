@@ -16,49 +16,45 @@ let test_game_state  = [
 ]
 
 let tile_size = 75
+let number_of_tiles = 5
 let round = 1
 let seconds_in_round = 10
 let ability = []
 
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
-const app = new PIXI.Application();
 
 async function setup(game_state) {
+    const Ximg = await PIXI.Assets.load('assets/x.png');
+    const Oimg = await PIXI.Assets.load('assets/o.png');
+
+    const app = new PIXI.Application();
     await app.init({ 
         canvas: document.querySelector('.canvas'),
         width: 800, 
         height: 600,
         backgroundColor: '#ffe4c4',    
     });
-
-    const Ximg = await PIXI.Assets.load('assets/x.png');
-    const Oimg = await PIXI.Assets.load('assets/o.png');
     
     const grid_graphics = new PIXI.Graphics();
-    draw_lines(grid_graphics, 5, tile_size)
-    app.stage.addChild(grid_graphics);
-
     const highlights_graphics = new PIXI.Graphics();
-    app.stage.on('pointermove', (event) => {
-        const pos = event.global;
-        const col = Math.floor(pos.x / tile_size);
-        const row = Math.floor(pos.y / tile_size);
-        if (row >= 0 && row < app.canvas.height && col >= 0 && col < app.canvas.width) {
-            draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
-        } else {
-            draw_backlight(highlights_graphics, [], tile_size);
-        }
-    });
-    app.stage.addChild(highlights_graphics);
-    
     const pieces_container = new PIXI.Container();
-    app.stage.addChild(pieces_container);
-    app.stage.eventMode = 'static'
-    app.stage.hitArea = app.screen;
+    draw_lines(grid_graphics, number_of_tiles, tile_size)
     draw_state(game_state, Ximg, Oimg, pieces_container)
     
-    app.stage.on('pointerdown', (event) => {
-        const [row, col] = get_click_row_col(event);
+    const main_container = new PIXI.Container();
+    main_container.eventMode = 'static'
+    main_container.hitArea = new PIXI.Rectangle(0, 0, (tile_size * number_of_tiles), (tile_size * number_of_tiles));
+   
+    main_container.x = (app.screen.width - (tile_size * number_of_tiles)) / 2;
+    main_container.y = (app.screen.height - (tile_size * number_of_tiles)) / 2;
+
+    app.stage.addChild(main_container);
+    main_container.addChild(grid_graphics);
+    main_container.addChild(highlights_graphics);
+    main_container.addChild(pieces_container);
+
+    main_container.on('pointerdown', (event) => {
+        const [row, col] = get_click_row_col(event, main_container);
         if (game_state[row][col] !== "") {
             return;
         }
@@ -69,6 +65,17 @@ async function setup(game_state) {
             console.log(winner)
         }
         turn = turn === "x" ? "o" : "x";
+    });
+
+    main_container.on('pointermove', (event) => {
+        const pos = main_container.toLocal(event.global);
+        const col = Math.floor(pos.x / tile_size);
+        const row = Math.floor(pos.y / tile_size);
+        if (row >= 0 && row < app.canvas.height && col >= 0 && col < app.canvas.width) {
+            draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
+        } else {
+            draw_backlight(highlights_graphics, [], tile_size);
+        }
     });
 }
 
@@ -102,8 +109,8 @@ function draw_lines(graphics, count_of_lines, tile_size) {
     graphics.stroke({ width: tile_size * 0.1, color: 0x666666 });
 }
 
-function get_click_row_col(event){
-    const pos = event.global;
+function get_click_row_col(event, container){
+    const pos = container.toLocal(event.global);
     const col = Math.floor(pos.x / tile_size);
     const row = Math.floor(pos.y / tile_size);
     return [row, col]

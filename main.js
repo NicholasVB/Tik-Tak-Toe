@@ -96,6 +96,11 @@ async function setup(game_state) {
             preview_sprite.visible = false;
         }
     });
+
+    main_container.on('pointerout', (event) => {
+        draw_backlight(highlights_graphics, [], tile_size);
+        preview_sprite.visible = false;
+    })
 }
 
 function handleTimeOut(Ximg, Oimg) {

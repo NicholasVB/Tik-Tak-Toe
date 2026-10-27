@@ -39,6 +39,9 @@ async function setup(game_state) {
         handleTimeOut(Ximg, Oimg);
     });
 
+    const preview_sprite = new PIXI.Sprite()
+    preview_sprite.alpha = 0.5;
+    preview_sprite.visible = false;
     const grid_graphics = new PIXI.Graphics();
     const highlights_graphics = new PIXI.Graphics();
     const pieces_container = new PIXI.Container();
@@ -57,6 +60,7 @@ async function setup(game_state) {
     app.stage.addChild(timerText);
     main_container.addChild(grid_graphics);
     main_container.addChild(highlights_graphics);
+    main_container.addChild(preview_sprite);
     main_container.addChild(pieces_container);
 
     main_container.on('pointerdown', (event) => {
@@ -79,10 +83,17 @@ async function setup(game_state) {
         const pos = main_container.toLocal(event.global);
         const col = Math.floor(pos.x / tile_size);
         const row = Math.floor(pos.y / tile_size);
-        if (row >= 0 && row < app.canvas.height && col >= 0 && col < app.canvas.width) {
+        if (row >= 0 && row < app.canvas.height && col >= 0 && col < app.canvas.width && game_state[row][col] === "") {
             draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
+            preview_sprite.texture = turn === 'x' ? Ximg : Oimg;
+            preview_sprite.width = tile_size * 0.8
+            preview_sprite.height = tile_size * 0.8
+            preview_sprite.x = col * tile_size + tile_size * 0.2 / 2
+            preview_sprite.y = row * tile_size + tile_size * 0.2 / 2
+            preview_sprite.visible = true;
         } else {
             draw_backlight(highlights_graphics, [], tile_size);
+            preview_sprite.visible = false;
         }
     });
 }

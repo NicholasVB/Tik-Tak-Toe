@@ -70,6 +70,8 @@ async function setup(game_state) {
         }
         game_state[row][col] = turn;
         draw_state(game_state, Ximg, Oimg, pieces_container)
+        const pos = main_container.toLocal(event.global);
+        update_cursor_effects(pos);
         const winner = check_win(game_state)
         if (winner !== "") {
             stopTimer();
@@ -81,9 +83,18 @@ async function setup(game_state) {
 
     main_container.on('pointermove', (event) => {
         const pos = main_container.toLocal(event.global);
-        const col = Math.floor(pos.x / tile_size);
-        const row = Math.floor(pos.y / tile_size);
-        if (row >= 0 && row < app.canvas.height && col >= 0 && col < app.canvas.width && game_state[row][col] === "") {
+        update_cursor_effects(pos);
+    });
+
+    main_container.on('pointerout', (event) => {
+        draw_backlight(highlights_graphics, [], tile_size);
+        preview_sprite.visible = false;
+    })
+    
+    function update_cursor_effects(local_pos) {
+        const col = Math.floor(local_pos.x / tile_size);
+        const row = Math.floor(local_pos.y / tile_size);
+        if (row >= 0 && row < tile_size * number_of_tiles && col >= 0 && col < tile_size * number_of_tiles && game_state[row][col] === "") {
             draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
             preview_sprite.texture = turn === 'x' ? Ximg : Oimg;
             preview_sprite.width = tile_size * 0.8
@@ -95,13 +106,9 @@ async function setup(game_state) {
             draw_backlight(highlights_graphics, [], tile_size);
             preview_sprite.visible = false;
         }
-    });
-
-    main_container.on('pointerout', (event) => {
-        draw_backlight(highlights_graphics, [], tile_size);
-        preview_sprite.visible = false;
-    })
+    }
 }
+
 
 function handleTimeOut(Ximg, Oimg) {
     turn = turn === "x" ? "o" : "x";

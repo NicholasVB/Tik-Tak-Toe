@@ -15,10 +15,6 @@ async function setup(game_state) {
         backgroundColor: '#ffe4c4',    
     });
     
-    startTurnTimer(() => {
-        handleTimeOut(Ximg, Oimg);
-    });
-
     const preview_sprite = new PIXI.Sprite()
     preview_sprite.alpha = 0.5;
     preview_sprite.visible = false;
@@ -55,6 +51,19 @@ async function setup(game_state) {
     main_container.addChild(preview_sprite);
     main_container.addChild(pieces_container);
 
+    let last_mouse_pos = { x: 0, y: 0 };
+    function handle_time_out() {
+        game_store.switch_turn();
+        board_view.update_cursor_effects(last_mouse_pos);
+        startTurnTimer(() => {
+            handle_time_out();
+        });
+    }
+
+    startTurnTimer(() => {
+        handle_time_out();
+    });
+
     main_container.on('pointerdown', (event) => {
         const [row, col] = get_click_row_col(event, main_container);
         if (game_store.is_cell_empty(row, col)) {
@@ -70,24 +79,18 @@ async function setup(game_state) {
             return;
         }
         game_store.switch_turn()
-        resetTimer(() => { handleTimeOut(Ximg, Oimg); })
+        resetTimer(() => { handle_time_out(); })
     });
 
     main_container.on('pointermove', (event) => {
         const pos = main_container.toLocal(event.global);
+        last_mouse_pos = pos;
         board_view.update_cursor_effects(pos);
     });
 
     main_container.on('pointerout', (event) => {
         board_view.clear_cell();
     })
-}
-
-function handleTimeOut(Ximg, Oimg) {
-    game_store.switch_turn();
-    startTurnTimer(() => {
-        handleTimeOut(Ximg, Oimg);
-    });
 }
 
 function get_click_row_col(event, container){

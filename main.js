@@ -1,27 +1,6 @@
-let turn = "x"
-let game_state  = [
-    ["", "", "", "", ""],
-    ["", "", "", "", ""],
-    ["", "", "", "", ""],
-    ["", "", "", "", ""],
-    ["", "", "", "", ""]
-]
-
-let test_game_state  = [
-    ["x", "x", "o", "x", "o"],
-    ["o", "o", "o", "o", ""],
-    ["", "", "", "", ""],
-    ["", "", "o", "", ""],
-    ["x", "x", "", "x", "x"]
-]
-
-let tile_size = 75
-let number_of_tiles = 5
-let round = 1
-let ability = []
-
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
 import { timerText, startTurnTimer, resetTimer, stopTimer } from './timer.js'
+import { game_store } from './store.js';
 
 async function setup(game_state) {
     const Ximg = await PIXI.Assets.load('assets/x.png');
@@ -45,14 +24,14 @@ async function setup(game_state) {
     const grid_graphics = new PIXI.Graphics();
     const highlights_graphics = new PIXI.Graphics();
     const pieces_container = new PIXI.Container();
-    draw_lines(grid_graphics, number_of_tiles, tile_size)
-    draw_state(game_state, Ximg, Oimg, pieces_container)
+    draw_lines(grid_graphics, game_store.number_of_tiles, game_store.tile_size)
+    draw_state(game_state, Ximg, Oimg, pieces_container, game_store.tile_size)
     
     const main_container = new PIXI.Container();
     main_container.eventMode = 'static'
-    main_container.hitArea = new PIXI.Rectangle(0, 0, (tile_size * number_of_tiles), (tile_size * number_of_tiles));
-    main_container.x = (app.screen.width - (tile_size * number_of_tiles)) / 2;
-    main_container.y = (app.screen.height - (tile_size * number_of_tiles)) / 2;
+    main_container.hitArea = new PIXI.Rectangle(0, 0, (game_store.tile_size * game_store.number_of_tiles), (game_store.tile_size * game_store.number_of_tiles));
+    main_container.x = (app.screen.width - (game_store.tile_size * game_store.number_of_tiles)) / 2;
+    main_container.y = (app.screen.height - (game_store.tile_size * game_store.number_of_tiles)) / 2;
 
     app.stage.addChild(main_container);
     timerText.x = app.screen.width * 0.9;
@@ -65,54 +44,56 @@ async function setup(game_state) {
 
     main_container.on('pointerdown', (event) => {
         const [row, col] = get_click_row_col(event, main_container);
-        if (game_state[row][col] !== "") {
-            return;
+        if (game_store.is_cell_empty(row, col)) {
+            game_store.change_game_state(row, col, game_store.turn);
         }
-        game_state[row][col] = turn;
-        draw_state(game_state, Ximg, Oimg, pieces_container)
+        draw_state(game_state, Ximg, Oimg, pieces_container, game_store.tile_size);
+
         const pos = main_container.toLocal(event.global);
-        update_cursor_effects(pos);
+        update_cursor_effects(pos, preview_sprite, highlights_graphics, Ximg, Oimg, game_store.tile_size);
         const winner = check_win(game_state)
         if (winner !== "") {
             stopTimer();
             return;
         }
-        turn = turn === "x" ? "o" : "x";
-        resetTimer(() => {handleTimeOut(Ximg, Oimg)})
+        game_store.switch_turn()
+        resetTimer(() => { handleTimeOut(Ximg, Oimg); })
     });
 
     main_container.on('pointermove', (event) => {
         const pos = main_container.toLocal(event.global);
-        update_cursor_effects(pos);
+        update_cursor_effects(pos, preview_sprite, highlights_graphics, Ximg, Oimg, game_store.tile_size);
     });
 
     main_container.on('pointerout', (event) => {
-        draw_backlight(highlights_graphics, [], tile_size);
+        draw_backlight(highlights_graphics, [], game_store.tile_size);
         preview_sprite.visible = false;
     })
-    
-    function update_cursor_effects(local_pos) {
-        const col = Math.floor(local_pos.x / tile_size);
-        const row = Math.floor(local_pos.y / tile_size);
-        if (row >= 0 && row < tile_size * number_of_tiles && col >= 0 && col < tile_size * number_of_tiles && game_state[row][col] === "") {
-            draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
-            preview_sprite.texture = turn === 'x' ? Ximg : Oimg;
-            preview_sprite.width = tile_size * 0.8
-            preview_sprite.height = tile_size * 0.8
-            preview_sprite.x = col * tile_size + tile_size * 0.2 / 2
-            preview_sprite.y = row * tile_size + tile_size * 0.2 / 2
-            preview_sprite.visible = true;
-        } else {
-            draw_backlight(highlights_graphics, [], tile_size);
-            preview_sprite.visible = false;
-        }
+}
+
+function update_cursor_effects(local_pos, preview_sprite, highlights_graphics, Ximg, Oimg, tile_size) {
+    const col = Math.floor(local_pos.x / tile_size);
+    const row = Math.floor(local_pos.y / tile_size);
+    if (
+        row >= 0 && row < game_store.number_of_tiles && 
+        col >= 0 && col < game_store.number_of_tiles && 
+        game_store.game_state[row][col] === ""
+    ) {
+        draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
+        preview_sprite.texture = game_store.turn === 'x' ? Ximg : Oimg;
+        preview_sprite.width = tile_size * 0.8
+        preview_sprite.height = tile_size * 0.8
+        preview_sprite.x = col * tile_size + tile_size * 0.2 / 2
+        preview_sprite.y = row * tile_size + tile_size * 0.2 / 2
+        preview_sprite.visible = true;
+    } else {
+        draw_backlight(highlights_graphics, [], tile_size);
+        preview_sprite.visible = false;
     }
 }
 
-
 function handleTimeOut(Ximg, Oimg) {
-    turn = turn === "x" ? "o" : "x";
-    
+    game_store.switch_turn();
     startTurnTimer(() => {
         handleTimeOut(Ximg, Oimg);
     });
@@ -150,12 +131,12 @@ function draw_lines(graphics, count_of_lines, tile_size) {
 
 function get_click_row_col(event, container){
     const pos = container.toLocal(event.global);
-    const col = Math.floor(pos.x / tile_size);
-    const row = Math.floor(pos.y / tile_size);
+    const col = Math.floor(pos.x / game_store.tile_size);
+    const row = Math.floor(pos.y / game_store.tile_size);
     return [row, col]
 }
    
-function draw_state(state, Ximg, Oimg, container){
+function draw_state(state, Ximg, Oimg, container, tile_size){
     container.removeChildren()
     for (let row = 0; row < state.length; row++) {
         for (let col = 0; col < state[row].length; col++) {
@@ -190,4 +171,4 @@ function check_win(game_state){
     return "";
 }
 
-setup(test_game_state);
+setup(game_store.game_state);

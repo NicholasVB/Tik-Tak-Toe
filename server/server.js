@@ -36,9 +36,11 @@ io.on('connection', (socket) => {
         console.log(`Игрок ${socket.id} назначен как X и ждет оппонента.`);
     } else {
         // Второй игрок найден, создаем комнату (он будет ноликом 'o')
-        const roomName = `room_${socket.id}`;
+        const roomName = `room_${waitingPlayer.id}_${socket.id}`;
         socket.join(roomName);
         waitingPlayer.join(roomName);
+        socket.room = roomName;
+        waitingPlayer.room = roomName;
         socket.role = 'o';
         console.log(`Комната ${roomName} создана. Игроки: ${waitingPlayer.id} (X) и ${socket.id} (O)`);
 
@@ -51,7 +53,9 @@ io.on('connection', (socket) => {
 
     socket.on('user_pick', (data) => {
         console.log(`Ход от игрока ${data.player}: row=${data.row}, col=${data.col}`);
-        io.emit('opponent_move', { row: data.row, col: data.col, player: data.player });
+        if (socket.room) {
+            io.to(socket.room).emit('game_update', { row: data.row, col: data.col, player: data.player });
+        }
     });
 
     socket.on('disconnect', () => {

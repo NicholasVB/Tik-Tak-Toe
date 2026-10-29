@@ -10,6 +10,11 @@ async function setup(game_state) {
     network.on_receive_user_pick((data) => {
         game_store.change_game_state(data.row, data.col, data.player);
         board_view.draw_state();
+        const winner = check_win(game_state)
+        if (winner !== "") {
+            stopTimer();
+            return;
+        }
         game_store.switch_turn();
         resetTimer(() => { handle_time_out(); });
     });
@@ -84,13 +89,6 @@ async function setup(game_state) {
 
         const pos = main_container.toLocal(event.global);
         board_view.update_cursor_effects(pos);
-        const winner = check_win(game_state)
-        if (winner !== "") {
-            stopTimer();
-            return;
-        }
-        game_store.switch_turn()
-        resetTimer(() => { handle_time_out(); })
     });
 
     main_container.on('pointermove', (event) => {

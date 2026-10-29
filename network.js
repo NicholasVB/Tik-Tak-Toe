@@ -1,9 +1,7 @@
-// network.js
-
 class NetworkManager {
     constructor() {
         this.socket = null;
-        this.role = null; // 'x' или 'o'
+        this.role = null; // 'x' or 'o'
         this.user_pick_callback = null;
         this.onStartGameCallback = null;
         this.onWaitingCallback = null;
@@ -26,8 +24,7 @@ class NetworkManager {
             if (this.onStartGameCallback) this.onStartGameCallback();
         });
 
-        this.socket.on('opponent_move', (data) => {
-            console.log('Получен ход от соперника:', data);
+        this.socket.on('game_update', (data) => {
             if (this.user_pick_callback) {
                 this.user_pick_callback(data);
             }
@@ -51,5 +48,4 @@ class NetworkManager {
     }
 }
 
-// Экспортируем один глобальный экземпляр (Singleton)
 export const network = new NetworkManager();

@@ -2,8 +2,18 @@ import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
 import { timerText, startTurnTimer, resetTimer, stopTimer } from './timer.js'
 import { game_store } from './store.js';
 import { create_board_view } from './view.js';
+import { network } from './network.js';
 
 async function setup(game_state) {
+    network.connect("room_123");
+    
+    network.on_receive_user_pick((data) => {
+        game_store.change_game_state(data.row, data.col, data.player);
+        board_view.draw_state();
+        game_store.switch_turn();
+        resetTimer(() => { handle_time_out(); });
+    });
+
     const Ximg = await PIXI.Assets.load('assets/x.png');
     const Oimg = await PIXI.Assets.load('assets/o.png');
 
@@ -65,11 +75,12 @@ async function setup(game_state) {
     });
 
     main_container.on('pointerdown', (event) => {
+        if (game_store.turn !== network.role) return;
+        
         const [row, col] = get_click_row_col(event, main_container);
         if (game_store.is_cell_empty(row, col)) {
-            game_store.change_game_state(row, col, game_store.turn);
+            network.send_user_pick(row, col);
         }
-        board_view.draw_state();
 
         const pos = main_container.toLocal(event.global);
         board_view.update_cursor_effects(pos);

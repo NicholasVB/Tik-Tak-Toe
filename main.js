@@ -10,12 +10,12 @@ async function setup(game_state) {
     network.on_receive_user_pick((data) => {
         game_store.change_game_state(data.row, data.col, data.player);
         board_view.draw_state();
-        const winner = check_win(game_state)
+        const winner = check_win(data.game_state)
         if (winner !== "") {
             stopTimer();
             return;
         }
-        game_store.switch_turn();
+        game_store.turn = data.turn;
         resetTimer(() => { handle_time_out(); });
     });
 
@@ -123,5 +123,5 @@ function check_win(game_state){
       
     return "";
 }
-
+game_store.reset_game_state()
 setup(game_store.game_state);

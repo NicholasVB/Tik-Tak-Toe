@@ -1,8 +1,27 @@
-import { game_store } from "./store.js";
-import { Sprite } from './node_modules/pixi.js/dist/pixi.mjs';
+import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
 
-export function create_board_view(preview_sprite, highlights_graphics, pieces_container, grid_graphics, Ximg, Oimg) {
+export function create_board_view(game_store, Ximg, Oimg) {
+    const preview_sprite = new PIXI.Sprite()
+    preview_sprite.alpha = 0.5;
+    preview_sprite.visible = false;
+    const grid_graphics = new PIXI.Graphics();
+    const highlights_graphics = new PIXI.Graphics();
+    const pieces_container = new PIXI.Container();
+    const main_container = new PIXI.Container();
+    main_container.eventMode = 'static'
+    main_container.hitArea = new PIXI.Rectangle(
+        0, 0, 
+        game_store.tile_size * game_store.number_of_tiles, 
+        game_store.tile_size * game_store.number_of_tiles
+    );
+    main_container.addChild(grid_graphics);
+    main_container.addChild(highlights_graphics);
+    main_container.addChild(preview_sprite);
+    main_container.addChild(pieces_container);
+
     return {
+        main_container: main_container,
+
         update_cursor_effects(local_pos) {
             const tile_size = game_store.tile_size;
             const col = Math.floor(local_pos.x / tile_size);
@@ -41,7 +60,7 @@ export function create_board_view(preview_sprite, highlights_graphics, pieces_co
             for (let row = 0; row < state.length; row++) {
                 for (let col = 0; col < state[row].length; col++) {
                     if (state[row][col] == "") { continue; }
-                    let sprite = new Sprite(state[row][col] === "x" ? Ximg : Oimg);
+                    let sprite = new PIXI.Sprite(state[row][col] === "x" ? Ximg : Oimg);
                     this.resize_and_positioning_sprite(sprite, row, col, tile_size)
                     pieces_container.addChild(sprite);
                 }

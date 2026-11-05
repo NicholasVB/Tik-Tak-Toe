@@ -30,41 +30,18 @@ async function setup(game_state) {
         backgroundColor: '#ffe4c4',    
     });
     
-    const preview_sprite = new PIXI.Sprite()
-    preview_sprite.alpha = 0.5;
-    preview_sprite.visible = false;
-    const grid_graphics = new PIXI.Graphics();
-    const highlights_graphics = new PIXI.Graphics();
-    const pieces_container = new PIXI.Container();
-    const board_view = create_board_view(
-        preview_sprite, 
-        highlights_graphics, 
-        pieces_container, 
-        grid_graphics, 
-        Ximg, 
-        Oimg
-    );
+    const board_view = create_board_view(game_store, Ximg, Oimg);
     board_view.draw_lines();
     board_view.draw_state();
     
-    const main_container = new PIXI.Container();
-    main_container.eventMode = 'static'
-    main_container.hitArea = new PIXI.Rectangle(
-        0, 0, 
-        game_store.tile_size * game_store.number_of_tiles, 
-        game_store.tile_size * game_store.number_of_tiles
-    );
-    main_container.x = (app.screen.width - (game_store.tile_size * game_store.number_of_tiles)) / 2;
-    main_container.y = (app.screen.height - (game_store.tile_size * game_store.number_of_tiles)) / 2;
+    board_view.main_container.x = (app.screen.width - (game_store.tile_size * game_store.number_of_tiles)) / 2;
+    board_view.main_container.y = (app.screen.height - (game_store.tile_size * game_store.number_of_tiles)) / 2;
 
-    app.stage.addChild(main_container);
+    app.stage.addChild(board_view.main_container);
     timerText.x = app.screen.width * 0.9;
     timerText.y = app.screen.height * 0.1;
     app.stage.addChild(timerText);
-    main_container.addChild(grid_graphics);
-    main_container.addChild(highlights_graphics);
-    main_container.addChild(preview_sprite);
-    main_container.addChild(pieces_container);
+    
 
     let last_mouse_pos = { x: 0, y: 0 };
     function handle_time_out() {
@@ -79,25 +56,25 @@ async function setup(game_state) {
         handle_time_out();
     });
 
-    main_container.on('pointerdown', (event) => {
+    board_view.main_container.on('pointerdown', (event) => {
         if (game_store.turn !== network.role) return;
         
-        const [row, col] = get_click_row_col(event, main_container);
+        const [row, col] = get_click_row_col(event, board_view.main_container);
         if (game_store.is_cell_empty(row, col)) {
             network.send_user_pick(row, col);
         }
 
-        const pos = main_container.toLocal(event.global);
+        const pos = board_view.main_container.toLocal(event.global);
         board_view.update_cursor_effects(pos);
     });
 
-    main_container.on('pointermove', (event) => {
-        const pos = main_container.toLocal(event.global);
+    board_view.main_container.on('pointermove', (event) => {
+        const pos = board_view.main_container.toLocal(event.global);
         last_mouse_pos = pos;
         board_view.update_cursor_effects(pos);
     });
 
-    main_container.on('pointerout', (event) => {
+    board_view.main_container.on('pointerout', (event) => {
         board_view.clear_cell();
     })
 }

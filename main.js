@@ -3,6 +3,7 @@ import { timerText, startTurnTimer, resetTimer, stopTimer } from './timer.js'
 import { game_store } from './store.js';
 import { create_board_view } from './view.js';
 import { network } from './network.js';
+import { calculate_max_score } from './score_calculator.js'
 
 async function setup(game_state) {
     network.connect("room_123");
@@ -11,6 +12,7 @@ async function setup(game_state) {
         game_store.change_game_state(data.row, data.col, data.player);
         board_view.draw_state();
         const winner = check_win(data.game_state)
+        console.log(`player: ${data.player}, score: ${calculate_max_score(data.game_state, data.player)}`)
         if (winner !== "") {
             stopTimer();
             return;

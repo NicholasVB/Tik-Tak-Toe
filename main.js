@@ -4,6 +4,7 @@ import { game_store } from './store.js';
 import { create_board_view } from './view.js';
 import { network } from './network.js';
 import { calculate_max_score } from './score_calculator.js'
+import { create_score_text } from './score_text.js';
 
 async function setup(game_state) {
     network.connect("room_123");
@@ -12,7 +13,10 @@ async function setup(game_state) {
         game_store.change_game_state(data.row, data.col, data.player);
         board_view.draw_state();
         const winner = check_win(data.game_state)
-        console.log(`player: ${data.player}, score: ${calculate_max_score(data.game_state, data.player)}`)
+        if (network.role === data.player) {
+            score_text.text = `Балів: ${calculate_max_score(data.game_state, data.player)}`
+        }
+        
         if (winner !== "") {
             stopTimer();
             return;
@@ -43,6 +47,10 @@ async function setup(game_state) {
     timerText.x = app.screen.width * 0.9;
     timerText.y = app.screen.height * 0.1;
     app.stage.addChild(timerText);
+    const score_text = create_score_text(0);
+    score_text.x = app.screen.width * 0.43;
+    score_text.y = app.screen.height * 0.1;
+    app.stage.addChild(score_text);
     
 
     let last_mouse_pos = { x: 0, y: 0 };

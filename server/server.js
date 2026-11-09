@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const { game_store } = require('../store');
+const { start_room_timer, stop_room_timer } = require('../timer.js');
 
 function switch_turn(turn) {
     return turn === "x" ? "o" : "x";
@@ -45,6 +46,31 @@ const io = new Server(server, {
 let waitingPlayer = null;
 const rooms = {};
 
+function init_room_timer(target_room_name) {
+    const room = rooms[target_room_name];
+    if (!room) return;
+
+    start_room_timer(
+        room,
+        (time) => {
+            if (rooms[target_room_name]) {
+                io.to(target_room_name).emit('timer_tick', { 
+                    time: time, 
+                    current_player: room.turn 
+                });
+            }
+        },
+        () => {
+            if (!rooms[target_room_name]) return;
+
+            room.turn = switch_turn(room.turn);
+            io.to(target_room_name).emit('time_out', { current_player: room.turn });
+            // Перезапускаем таймер для следующего игрока
+            init_room_timer(target_room_name);
+        }
+    );
+}
+
 io.on('connection', (socket) => {
     console.log(`Игрок подключился: ${socket.id}`);
 
@@ -69,7 +95,9 @@ io.on('connection', (socket) => {
             players: {
                 [waitingPlayer.id]: "x",
                 [socket.id]: "o"
-            }
+            },
+            timer: null,
+            current_time: 10
         }
         console.log(`Комната ${room_name} создана. Игроки: ${waitingPlayer.id} (X) и ${socket.id} (O)`);
 
@@ -77,7 +105,10 @@ io.on('connection', (socket) => {
         io.to(room_name).emit('start_game', { room: room_name });
         waitingPlayer.emit('assign_role', { role: 'x' });
         socket.emit('assign_role', { role: 'o' });
-        waitingPlayer = null; // сбрасываем очередь
+        
+        // Запускаем таймер для комнаты при её создании
+        init_room_timer(room_name);
+        waitingPlayer = null;
     }
 
     socket.on('user_pick', (data) => {
@@ -100,6 +131,7 @@ io.on('connection', (socket) => {
                     game_state: room.game_state
                 }
             );
+            init_room_timer(socket.room);
         }
     });
 

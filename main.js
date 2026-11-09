@@ -1,10 +1,18 @@
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
-import { timerText, startTurnTimer, resetTimer, stopTimer } from './timer.js'
 import { game_store } from './store.js';
 import { create_board_view } from './view.js';
 import { network } from './network.js';
 import { calculate_max_score } from './score_calculator.js'
 import { create_score_text } from './score_text.js';
+
+const timerText = new PIXI.Text({
+    text: '',
+    style: {
+        fontFamily: 'Arial',
+        fontSize: 24,
+        fill: 0xffffff,
+    }
+});
 
 async function setup(game_state) {
     network.connect("room_123");
@@ -17,12 +25,23 @@ async function setup(game_state) {
             score_text.text = `Балів: ${calculate_max_score(data.game_state, data.player)}`
         }
         
-        if (winner !== "") {
-            stopTimer();
-            return;
-        }
+        // if (winner !== "") {
+        //     stopTimer();
+        //     return;
+        // }
         game_store.turn = data.turn;
-        resetTimer(() => { handle_time_out(); });
+        // resetTimer(() => { handle_time_out(); });
+    });
+
+    network.on_timer_tick((data) => {
+        timerText.text = `${data.time}`;
+        game_store.turn = data.current_player;
+    });
+    
+    let last_mouse_pos = { x: 0, y: 0 };
+    network.on_time_out((data) => {
+        game_store.turn = data.current_player;
+        board_view.update_cursor_effects(last_mouse_pos);
     });
 
     const Ximg = await PIXI.Assets.load('assets/x.png');
@@ -44,27 +63,13 @@ async function setup(game_state) {
     board_view.main_container.y = (app.screen.height - (game_store.tile_size * game_store.number_of_tiles)) / 2;
 
     app.stage.addChild(board_view.main_container);
-    timerText.x = app.screen.width * 0.9;
+    timerText.x = app.screen.width * 0.7;
     timerText.y = app.screen.height * 0.1;
     app.stage.addChild(timerText);
     const score_text = create_score_text(0);
     score_text.x = app.screen.width * 0.43;
     score_text.y = app.screen.height * 0.1;
     app.stage.addChild(score_text);
-    
-
-    let last_mouse_pos = { x: 0, y: 0 };
-    function handle_time_out() {
-        game_store.switch_turn();
-        board_view.update_cursor_effects(last_mouse_pos);
-        startTurnTimer(() => {
-            handle_time_out();
-        });
-    }
-
-    startTurnTimer(() => {
-        handle_time_out();
-    });
 
     board_view.main_container.on('pointerdown', (event) => {
         if (game_store.turn !== network.role) return;

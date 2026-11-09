@@ -29,6 +29,17 @@ class NetworkManager {
                 this.user_pick_callback(data);
             }
         });
+        this.socket.on('timer_tick', (data) => {
+            if (this.timer_tick_callback) {
+                this.timer_tick_callback(data);
+            } 
+        });
+
+        this.socket.on('time_out', (data) => {
+            if (this.time_out_callback) {
+                this.time_out_callback(data);
+            }    
+        });
     }
 
     send_user_pick(row, col) {
@@ -37,6 +48,14 @@ class NetworkManager {
 
     on_receive_user_pick(callback) {
         this.user_pick_callback = callback;
+    }
+    
+    on_timer_tick(callback) {
+        this.timer_tick_callback = callback;
+    }
+    
+    on_time_out(callback) {
+        this.time_out_callback = callback;
     }
 
     onStartGame(callback) {

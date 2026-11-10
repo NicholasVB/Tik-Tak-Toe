@@ -8,7 +8,7 @@ class NetworkManager {
     }
 
     connect(roomCode) {
-        this.socket = io('http://localhost:3000');
+        this.socket = io();
         
         this.socket.on('waiting', (msg) => {
             console.log(msg);

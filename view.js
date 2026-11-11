@@ -1,6 +1,8 @@
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
 
-export function create_board_view(game_store, Ximg, Oimg) {
+export function create_board_view(screen_width, screen_height, game_store, Ximg, Oimg) {
+    const board_pixel_size = game_store.number_of_tiles * game_store.tile_size;
+    
     const preview_sprite = new PIXI.Sprite()
     preview_sprite.alpha = 0.5;
     preview_sprite.visible = false;
@@ -9,11 +11,10 @@ export function create_board_view(game_store, Ximg, Oimg) {
     const pieces_container = new PIXI.Container();
     const main_container = new PIXI.Container();
     main_container.eventMode = 'static'
-    main_container.hitArea = new PIXI.Rectangle(
-        0, 0, 
-        game_store.tile_size * game_store.number_of_tiles, 
-        game_store.tile_size * game_store.number_of_tiles
-    );
+    main_container.hitArea = new PIXI.Rectangle(0, 0, board_pixel_size, board_pixel_size);
+    main_container.x = (screen_width - board_pixel_size) / 2;
+    main_container.y = (screen_height - board_pixel_size) / 2;
+
     main_container.addChild(grid_graphics);
     main_container.addChild(highlights_graphics);
     main_container.addChild(preview_sprite);
@@ -22,6 +23,19 @@ export function create_board_view(game_store, Ximg, Oimg) {
     return {
         main_container: main_container,
 
+        resize_and_positioning_main_container(screen_width, screen_height){
+            const board_pixel_size = game_store.number_of_tiles * game_store.tile_size;
+            const padding = 20;
+            // зменшити маштаб дошки якщо вона більше екрану телефона 
+            const scale_x = (screen_width - padding * 2) / board_pixel_size;
+            const scale_y = (screen_height - padding * 2) / board_pixel_size;
+            const optimal_scale = Math.min(scale_x, scale_y, 1); 
+            main_container.scale.set(optimal_scale);
+            // центруєм з врахуванням маштабу
+            main_container.x = (screen_width - board_pixel_size * optimal_scale) / 2;
+            main_container.y = (screen_height - board_pixel_size * optimal_scale) / 2;
+        },
+        
         update_cursor_effects(local_pos) {
             const tile_size = game_store.tile_size;
             const col = Math.floor(local_pos.x / tile_size);

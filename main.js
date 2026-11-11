@@ -50,17 +50,18 @@ async function setup(game_state) {
     const app = new PIXI.Application();
     await app.init({ 
         canvas: document.querySelector('.canvas'),
-        width: 800, 
-        height: 600,
-        backgroundColor: '#ffe4c4',    
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: '#ffe4c4',
+        resizeTo: window // автоматично міняти розмір при повороті екрану
     });
     
-    const board_view = create_board_view(game_store, Ximg, Oimg);
+    const board_view = create_board_view(app.screen.width, app.screen.height, game_store, Ximg, Oimg);
+    app.renderer.on('resize', () => { 
+        board_view.resize_and_positioning_main_container(app.screen.width, app.screen.height);
+    });
     board_view.draw_lines();
     board_view.draw_state();
-    
-    board_view.main_container.x = (app.screen.width - (game_store.tile_size * game_store.number_of_tiles)) / 2;
-    board_view.main_container.y = (app.screen.height - (game_store.tile_size * game_store.number_of_tiles)) / 2;
 
     app.stage.addChild(board_view.main_container);
     timerText.x = app.screen.width * 0.7;

@@ -15,7 +15,7 @@ function find_all_possible_lines(board_state, player) {
         if (isValid && cells.length >= 2) {
             lines.push({
                 length: cells.length,
-                score: SCORE_TABLE[cells.length] || (cells.length * 3), // формула, якщо довжина більше таблиці
+                score: SCORE_TABLE[cells.length] || (cells.length * 4), // формула, якщо довжина більше таблиці
                 cells: cells // масив координат [[row,column], [row,column], ...]
             });
         }

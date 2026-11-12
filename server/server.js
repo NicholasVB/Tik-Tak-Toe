@@ -37,13 +37,12 @@ app.use((req, res, next) => {
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // Разрешаем подключения с любых адресов для разработки
+        origin: "*", // дозволено підключення з любих адрес
         methods: ["GET", "POST"]
     }
 });
 
-// Простая очередь ожидания игроков для создания комнат
-let waitingPlayer = null;
+let waiting_player = null;
 const rooms = {};
 
 function init_room_timer(target_room_name) {
@@ -65,54 +64,50 @@ function init_room_timer(target_room_name) {
 
             room.turn = switch_turn(room.turn);
             io.to(target_room_name).emit('time_out', { current_player: room.turn });
-            // Перезапускаем таймер для следующего игрока
+            // перезапускаємо таймер для наступного гравця
             init_room_timer(target_room_name);
         }
     );
 }
 
 io.on('connection', (socket) => {
-    console.log(`Игрок подключился: ${socket.id}`);
-
-    // Логика распределения игроков по комнатам (по 2 человека)
-    if (!waitingPlayer) {
-        waitingPlayer = socket;
-        
-        socket.emit('waiting', 'Ожидание второго игрока...');
-        console.log(`Игрок ${socket.id} назначен как X и ждет оппонента.`);
+    console.log(`Перший гравець підключився: ${socket.id}`);
+    if (!waiting_player) {
+        waiting_player = socket;
+        socket.emit('waiting', 'Очікуєм другого гравця...');
     } else {
-        // Второй игрок найден, создаем комнату (он будет ноликом 'o')
-        const room_name = `room_${waitingPlayer.id}_${socket.id}`;
+        // приєднався другий гравець, створюєм кімнату
+        const room_name = `room_${waiting_player.id}_${socket.id}`;
         socket.join(room_name);
-        waitingPlayer.join(room_name);
+        waiting_player.join(room_name);
         socket.room = room_name;
-        waitingPlayer.room = room_name;
+        waiting_player.room = room_name;
 
         rooms[room_name] = {
             number_of_tiles: game_store.number_of_tiles,
             turn: "x",
             game_state: Array(game_store.number_of_tiles).fill(0).map(() => Array(game_store.number_of_tiles).fill("")),
             players: {
-                [waitingPlayer.id]: "x",
+                [waiting_player.id]: "x",
                 [socket.id]: "o"
             },
             timer: null,
             current_time: 10
         }
-        console.log(`Комната ${room_name} создана. Игроки: ${waitingPlayer.id} (X) и ${socket.id} (O)`);
+        console.log(`Кімната ${room_name} створена. Гравці: ${waiting_player.id} (X) и ${socket.id} (O)`);
 
-        // Оповещаем обоих, что игра началась, и раздаем роли
+        // даем ролі гравцям
         io.to(room_name).emit('start_game', { room: room_name });
-        waitingPlayer.emit('assign_role', { role: 'x' });
+        waiting_player.emit('assign_role', { role: 'x' });
         socket.emit('assign_role', { role: 'o' });
         
-        // Запускаем таймер для комнаты при её создании
+        // запускаєм таймер при створенні кімнати
         init_room_timer(room_name);
-        waitingPlayer = null;
+        waiting_player = null;
     }
 
     socket.on('user_pick', (data) => {
-        console.log(`Ход от игрока ${data.player}: row=${data.row}, col=${data.col}`);
+        console.log(`Хід гравця ${data.player}: row=${data.row}, col=${data.col}`);
         const room = rooms[socket.room];
         if (!room) return;
         const role = room.players[socket.id];
@@ -136,9 +131,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`Игрок отключился: ${socket.id}`);
-        if (waitingPlayer === socket) {
-            waitingPlayer = null;
+        console.log(`Гравець відключився: ${socket.id}`);
+        if (waiting_player === socket) {
+            waiting_player = null;
         }
         delete rooms[socket.room];
     });

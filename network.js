@@ -3,25 +3,25 @@ class NetworkManager {
         this.socket = null;
         this.role = null; // 'x' or 'o'
         this.user_pick_callback = null;
-        this.onStartGameCallback = null;
-        this.onWaitingCallback = null;
+        this.on_start_game_callback = null;
+        this.on_waiting_callback = null;
     }
 
-    connect(roomCode) {
+    connect(room_code) {
         this.socket = io();
         
         this.socket.on('waiting', (msg) => {
             console.log(msg);
-            if (this.onWaitingCallback) this.onWaitingCallback(msg);
+            if (this.on_waiting_callback) this.on_waiting_callback(msg);
         });
         this.socket.on('assign_role', (data) => {
             this.role = data.role;
-            console.log(`Ваша роль в игре: ${this.role}`);
+            console.log(`Ваша роль у грі: ${this.role}`);
         });
 
         this.socket.on('start_game', () => {
-            console.log('Игра началась!');
-            if (this.onStartGameCallback) this.onStartGameCallback();
+            console.log('Гра почалась!');
+            if (this.on_start_game_callback) this.on_start_game_callback();
         });
 
         this.socket.on('game_update', (data) => {
@@ -59,11 +59,11 @@ class NetworkManager {
     }
 
     onStartGame(callback) {
-        this.onStartGameCallback = callback;
+        this.on_start_game_callback = callback;
     }
 
     onWaiting(callback) {
-        this.onWaitingCallback = callback;
+        this.on_waiting_callback = callback;
     }
 }
 

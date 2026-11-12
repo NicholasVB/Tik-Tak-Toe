@@ -5,7 +5,7 @@ import { network } from './network.js';
 import { calculate_max_score } from './score_calculator.js'
 import { create_score_text } from './score_text.js';
 
-const timerText = new PIXI.Text({
+const timer_text = new PIXI.Text({
     text: '',
     style: {
         fontFamily: 'Arial',
@@ -24,17 +24,11 @@ async function setup(game_state) {
         if (network.role === data.player) {
             score_text.text = `Балів: ${calculate_max_score(data.game_state, data.player)}`
         }
-        
-        // if (winner !== "") {
-        //     stopTimer();
-        //     return;
-        // }
         game_store.turn = data.turn;
-        // resetTimer(() => { handle_time_out(); });
     });
 
     network.on_timer_tick((data) => {
-        timerText.text = `${data.time}`;
+        timer_text.text = `${data.time}`;
         game_store.turn = data.current_player;
     });
     
@@ -64,9 +58,9 @@ async function setup(game_state) {
     board_view.draw_state();
 
     app.stage.addChild(board_view.main_container);
-    timerText.x = app.screen.width * 0.7;
-    timerText.y = app.screen.height * 0.1;
-    app.stage.addChild(timerText);
+    timer_text.x = app.screen.width * 0.7;
+    timer_text.y = app.screen.height * 0.1;
+    app.stage.addChild(timer_text);
     const score_text = create_score_text(0);
     score_text.x = app.screen.width * 0.43;
     score_text.y = app.screen.height * 0.1;

@@ -2,26 +2,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const { game_store } = require('../store');
+const { create_store, is_cell_empty } = require('../store');
 const { start_room_timer, stop_room_timer } = require('../timer.js');
-
-function switch_turn(turn) {
-    return turn === "x" ? "o" : "x";
-}
-
-function is_cell_empty(row, col, game_state, number_of_tiles) {
-    if (
-        row < 0 || row >= number_of_tiles || 
-        col < 0 || col >= number_of_tiles
-    ) {
-        return false;
-    }
-    return game_state[row][col] === "";
-}
-
-function change_game_state(row, col, player, game_state) {
-    game_state[row][col] = player;
-}
 
 const app = express();
 path_to_static = path.join(__dirname)+"\\..";
@@ -55,15 +37,15 @@ function init_room_timer(target_room_name) {
             if (rooms[target_room_name]) {
                 io.to(target_room_name).emit('timer_tick', { 
                     time: time, 
-                    current_player: room.turn 
+                    current_player: room.store.turn 
                 });
             }
         },
         () => {
             if (!rooms[target_room_name]) return;
 
-            room.turn = switch_turn(room.turn);
-            io.to(target_room_name).emit('time_out', { current_player: room.turn });
+            room.store.switch_turn();
+            io.to(target_room_name).emit('time_out', { current_player: room.store.turn });
             // перезапускаємо таймер для наступного гравця
             init_room_timer(target_room_name);
         }
@@ -84,9 +66,7 @@ io.on('connection', (socket) => {
         waiting_player.room = room_name;
 
         rooms[room_name] = {
-            number_of_tiles: game_store.number_of_tiles,
-            turn: "x",
-            game_state: Array(game_store.number_of_tiles).fill(0).map(() => Array(game_store.number_of_tiles).fill("")),
+            store: create_store(5),
             players: {
                 [waiting_player.id]: "x",
                 [socket.id]: "o"
@@ -111,19 +91,19 @@ io.on('connection', (socket) => {
         const room = rooms[socket.room];
         if (!room) return;
         const role = room.players[socket.id];
-        if (role !== room.turn) return;
+        if (role !== room.store.turn) return;
         
-        if (is_cell_empty(data.row, data.col, room.game_state, room.number_of_tiles)) {
-            change_game_state(data.row, data.col, data.player, room.game_state)
-            room.turn = switch_turn(room.turn)
+        if (is_cell_empty(room.store.game_state, data.row, data.col, room.store.number_of_tiles)) {
+            room.store.change_game_state(data.row, data.col, data.player)
+            room.store.switch_turn()
             io.to(socket.room).emit(
                 'game_update', 
                 { 
                     row: data.row, 
                     col: data.col, 
                     player: data.player,
-                    turn: room.turn,
-                    game_state: room.game_state
+                    turn: room.store.turn,
+                    game_state: room.store.game_state
                 }
             );
             init_room_timer(socket.room);

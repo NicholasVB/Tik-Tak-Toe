@@ -1,4 +1,5 @@
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
+import { is_cell_empty } from './store.js';
 
 export function create_board_view(screen_width, screen_height, game_store, Ximg, Oimg) {
     const board_pixel_size = game_store.number_of_tiles * game_store.tile_size;
@@ -40,7 +41,7 @@ export function create_board_view(screen_width, screen_height, game_store, Ximg,
             const tile_size = game_store.tile_size;
             const col = Math.floor(local_pos.x / tile_size);
             const row = Math.floor(local_pos.y / tile_size);
-            if (game_store.is_cell_empty(row, col)) {
+            if (is_cell_empty(game_store.game_state, row, col, game_store.number_of_tiles)) {
                 this.draw_backlight(highlights_graphics, [{ row, col }], tile_size, 0x0088ff, 0.2);
                 this.change_sprite_texture(preview_sprite, game_store.turn === 'x' ? Ximg : Oimg)
                 this.resize_and_positioning_sprite(preview_sprite, row, col, tile_size)

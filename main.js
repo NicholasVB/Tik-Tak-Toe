@@ -1,5 +1,5 @@
 import * as PIXI from './node_modules/pixi.js/dist/pixi.mjs';
-import { game_store } from './store.js';
+import { create_store, is_cell_empty } from './store.js';
 import { create_board_view } from './view.js';
 import { network } from './network.js';
 import { calculate_max_score } from './score_calculator.js'
@@ -14,7 +14,20 @@ const timer_text = new PIXI.Text({
     }
 });
 
-async function setup(game_state) {
+async function setup() {
+    const Ximg = await PIXI.Assets.load('assets/x.png');
+    const Oimg = await PIXI.Assets.load('assets/o.png');
+
+    const app = new PIXI.Application();
+    await app.init({ 
+        canvas: document.querySelector('.canvas'),
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: '#ffe4c4',
+        resizeTo: window // автоматично міняти розмір при повороті екрану
+    });
+    const game_store = create_store(5);
+    
     network.connect("room_123");
     
     network.on_receive_user_pick((data) => {
@@ -38,18 +51,6 @@ async function setup(game_state) {
         board_view.update_cursor_effects(last_mouse_pos);
     });
 
-    const Ximg = await PIXI.Assets.load('assets/x.png');
-    const Oimg = await PIXI.Assets.load('assets/o.png');
-
-    const app = new PIXI.Application();
-    await app.init({ 
-        canvas: document.querySelector('.canvas'),
-        width: window.innerWidth,
-        height: window.innerHeight,
-        backgroundColor: '#ffe4c4',
-        resizeTo: window // автоматично міняти розмір при повороті екрану
-    });
-    
     const board_view = create_board_view(app.screen.width, app.screen.height, game_store, Ximg, Oimg);
     app.renderer.on('resize', () => { 
         board_view.resize_and_positioning_main_container(app.screen.width, app.screen.height);
@@ -67,10 +68,11 @@ async function setup(game_state) {
     app.stage.addChild(score_text);
 
     board_view.main_container.on('pointerdown', (event) => {
+        console.log("turn", game_store, "network", network.role)
         if (game_store.turn !== network.role) return;
         
-        const [row, col] = get_click_row_col(event, board_view.main_container);
-        if (game_store.is_cell_empty(row, col)) {
+        const [row, col] = get_click_row_col(event, board_view.main_container, game_store.tile_size);
+        if (is_cell_empty(game_store.game_state, row, col, game_store.number_of_tiles)) {
             network.send_user_pick(row, col);
         }
 
@@ -89,10 +91,10 @@ async function setup(game_state) {
     })
 }
 
-function get_click_row_col(event, container){
+function get_click_row_col(event, container, tile_size){
     const pos = container.toLocal(event.global);
-    const col = Math.floor(pos.x / game_store.tile_size);
-    const row = Math.floor(pos.y / game_store.tile_size);
+    const col = Math.floor(pos.x / tile_size);
+    const row = Math.floor(pos.y / tile_size);
     return [row, col]
 }
 
@@ -110,5 +112,5 @@ function check_win(game_state){
       
     return "";
 }
-game_store.reset_game_state()
-setup(game_store.game_state);
+
+setup();

@@ -28,9 +28,9 @@ async function setup() {
     });
     const game_store = create_store(5);
     
-    network.connect("room_123");
+    network.connect();
     
-    network.on_receive_user_pick((data) => {
+    network.on("game_update", (data) => {
         game_store.change_game_state(data.row, data.col, data.player);
         board_view.draw_state();
         const winner = check_win(data.game_state)
@@ -40,13 +40,18 @@ async function setup() {
         game_store.turn = data.turn;
     });
 
-    network.on_timer_tick((data) => {
+    network.on("assign_role", (data) => {
+        network.role = data.role;
+        console.log(`Ваша роль у грі: ${network.role}`);
+    });
+
+    network.on("timer_tick", (data) => {
         timer_text.text = `${data.time}`;
         game_store.turn = data.current_player;
     });
     
     let last_mouse_pos = { x: 0, y: 0 };
-    network.on_time_out((data) => {
+    network.on("time_out", (data) => {
         game_store.turn = data.current_player;
         board_view.update_cursor_effects(last_mouse_pos);
     });
@@ -68,12 +73,11 @@ async function setup() {
     app.stage.addChild(score_text);
 
     board_view.main_container.on('pointerdown', (event) => {
-        console.log("turn", game_store, "network", network.role)
         if (game_store.turn !== network.role) return;
         
         const [row, col] = get_click_row_col(event, board_view.main_container, game_store.tile_size);
         if (is_cell_empty(game_store.game_state, row, col, game_store.number_of_tiles)) {
-            network.send_user_pick(row, col);
+            network.send('user_pick', { row, col, player: network.role }); 
         }
 
         const pos = board_view.main_container.toLocal(event.global);

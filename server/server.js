@@ -26,6 +26,7 @@ const io = new Server(server, {
 
 let waiting_player = null;
 const rooms = {};
+const player_rooms = {};
 
 function init_room_timer(target_room_name) {
     const room = rooms[target_room_name];
@@ -62,8 +63,8 @@ io.on('connection', (socket) => {
         const room_name = `room_${waiting_player.id}_${socket.id}`;
         socket.join(room_name);
         waiting_player.join(room_name);
-        socket.room = room_name;
-        waiting_player.room = room_name;
+        player_rooms[socket.id] = room_name;
+        player_rooms[waiting_player.id] = room_name;
 
         rooms[room_name] = {
             store: create_store(5),
@@ -88,7 +89,8 @@ io.on('connection', (socket) => {
 
     socket.on('user_pick', (data) => {
         console.log(`Хід гравця ${data.player}: row=${data.row}, col=${data.col}`);
-        const room = rooms[socket.room];
+        const room_name = player_rooms[socket.id];
+        const room = rooms[room_name];
         if (!room) return;
         const role = room.players[socket.id];
         if (role !== room.store.turn) return;
@@ -96,7 +98,7 @@ io.on('connection', (socket) => {
         if (is_cell_empty(room.store.game_state, data.row, data.col, room.store.number_of_tiles)) {
             room.store.change_game_state(data.row, data.col, data.player)
             room.store.switch_turn()
-            io.to(socket.room).emit(
+            io.to(room_name).emit(
                 'game_update', 
                 { 
                     row: data.row, 
@@ -106,7 +108,7 @@ io.on('connection', (socket) => {
                     game_state: room.store.game_state
                 }
             );
-            init_room_timer(socket.room);
+            init_room_timer(room_name);
         }
     });
 
@@ -115,7 +117,21 @@ io.on('connection', (socket) => {
         if (waiting_player === socket) {
             waiting_player = null;
         }
-        delete rooms[socket.room];
+        
+        const room_name = player_rooms[socket.id];
+        const room = rooms[room_name];
+        if (room) {
+            socket.to(room_name).emit('opponent_disconnected', 'Суперник відключився. Гра завершена.');
+            if (room.timer) {
+                clearInterval(room.timer);
+            }
+            for (const player_id of Object.keys(room.players)) {
+                delete player_rooms[player_id];
+            }
+            delete rooms[room_name];
+        }
+
+        delete player_rooms[socket.id];
     });
 });
 

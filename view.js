@@ -16,6 +16,14 @@ export function create_board_view(screen_width, screen_height, game_store, Ximg,
     main_container.x = (screen_width - board_pixel_size) / 2;
     main_container.y = (screen_height - board_pixel_size) / 2;
 
+    const opponent_highlights_graphics = new PIXI.Graphics();
+    const opponent_preview_sprite = new PIXI.Sprite();
+    opponent_preview_sprite.visible = false;
+    opponent_preview_sprite.alpha = 0.35;
+    opponent_preview_sprite.tint = 0xffaa00;
+
+    main_container.addChild(opponent_highlights_graphics);
+    main_container.addChild(opponent_preview_sprite);
     main_container.addChild(grid_graphics);
     main_container.addChild(highlights_graphics);
     main_container.addChild(preview_sprite);
@@ -23,6 +31,38 @@ export function create_board_view(screen_width, screen_height, game_store, Ximg,
 
     return {
         main_container: main_container,
+
+        clear_opponent_cursor() {
+            opponent_highlights_graphics.clear();
+            opponent_preview_sprite.visible = false;
+        },
+
+        update_opponent_cursor(data) {
+            if (!data || !data.visible || typeof data.x !== 'number' || typeof data.y !== 'number') {
+                this.clear_opponent_cursor();
+                return;
+            }
+
+            const tile_size = game_store.tile_size;
+            const number_of_tiles = game_store.number_of_tiles;
+            const col = Math.floor(data.x);
+            const row = Math.floor(data.y);
+
+            if (
+                row < 0 || row >= number_of_tiles ||
+                col < 0 || col >= number_of_tiles ||
+                !is_cell_empty(game_store.game_state, row, col, number_of_tiles)
+            ) {
+                this.clear_opponent_cursor();
+                return;
+            }
+
+            const opponent_role = game_store.turn === 'x' ? 'x' : 'o';
+            this.draw_backlight(opponent_highlights_graphics, [{ row, col }], tile_size, 0xffaa00, 0.15);
+            this.change_sprite_texture(opponent_preview_sprite, opponent_role === 'x' ? Ximg : Oimg);
+            this.resize_and_positioning_sprite(opponent_preview_sprite, row, col, tile_size);
+            opponent_preview_sprite.visible = true;
+        },
 
         resize_and_positioning_main_container(screen_width, screen_height){
             const board_pixel_size = game_store.number_of_tiles * game_store.tile_size;
